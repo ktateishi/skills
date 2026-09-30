@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{タイトル}}</title>
+<style>
+/* スタイルシート：編集しない */
+/* =========================================================
+   デザイントークン（正本）
+   見た目の値はすべてここで定義し、他の CSS は参照だけする。
+   ライトのみ。ダークモードは対応しない。
+   ========================================================= */
+:root {
+  /* ---- 色：基本 ---- */
+  --color-bg: #f5f6f6;            /* ページ背景 */
+  --color-surface: #ffffff;       /* ボックス・図の地 */
+  --color-sidebar: #eceeee;       /* 目次サイドバー・表の見出し行 */
+  --color-text: #26292b;
+  --color-text-muted: #5b6165;
+  --color-border: #d9dddf;
+  --color-accent: #2f5a86;        /* リンク・目次の現在位置・ステップ番号 */
+  --color-accent-soft: #e4ebf3;
+  --color-on-accent: #ffffff;
+  --color-code-bg: #eef0f1;
+
+  /* ---- 色：要点・注記ボックス（文字 / 背景 / 枠線） ---- */
+  --color-point: #26292b;   --color-point-bg: #ffffff;   --color-point-border: #d9dddf;
+  --color-info: #2f5a86;    --color-info-bg: #eef3f8;    --color-info-border: #c5d4e5;
+  --color-tip: #2e6b4f;     --color-tip-bg: #edf5f0;     --color-tip-border: #bfd9ca;
+  --color-caution: #8a5a00; --color-caution-bg: #fbf5e6; --color-caution-border: #e6d3a6;
+  --color-warning: #a3322b; --color-warning-bg: #fbefed; --color-warning-border: #ebc3be;
+
+  /* ---- 色：コードの構文強調（highlight.js） ---- */
+  --color-syntax-keyword: #8e3a59;
+  --color-syntax-string: #2e6b4f;
+  --color-syntax-number: #8a5a00;
+  --color-syntax-title: #2f5a86;
+  --color-syntax-attr: #6a4c93;
+  --color-syntax-comment: #646a6f;
+  --color-syntax-deletion-bg: #fbefed;
+  --color-syntax-addition-bg: #edf5f0;
+
+  /* ---- フォント：和文ゴシックに統一（ヒラギノ優先）、コードは等幅 ---- */
+  --font-body: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic Medium", YuGothic, "Noto Sans JP", Meiryo, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "BIZ UDGothic", monospace;
+
+  /* ---- 組版（パターン B） ---- */
+  --font-size-base: 15px;
+  --line-height-body: 1.75;
+  --line-height-heading: 1.5;
+  --line-height-dense: 1.6;       /* 表・目次 */
+  --letter-spacing-body: 0.02em;
+  --letter-spacing-heading: 0.02em;
+  --letter-spacing-label: 0.06em; /* ボックスの見出し・ラベル */
+  --measure: 46em;                /* 本文の最大幅（約 46 字） */
+
+  /* ---- 文字サイズ（base = 15px に対する rem） ---- */
+  --font-size-h1: 1.875rem;
+  --font-size-h2: 1.5rem;
+  --font-size-h3: 1.1875rem;
+  --font-size-table: 0.9375rem;
+  --font-size-small: 0.875rem;    /* 目次・ボックス見出し */
+  --font-size-caption: 0.8125rem; /* メタ情報・キャプション・コード */
+  --font-size-label: 0.75rem;
+
+  /* ---- 余白 ---- */
+  --space-block: 1.5rem;          /* 段落・ブロック間 */
+  --space-section: 3.5rem;        /* セクション見出しの上 */
+  --space-subsection: 2.25rem;    /* 小見出しの上 */
+
+  /* ---- 形 ---- */
+  --radius-box: 8px;              /* 要点・注記 */
+  --radius-block: 6px;            /* コード・図・折りたたみ */
+  --radius-inline: 4px;
+
+  /* ---- レイアウト ---- */
+  --sidebar-width: 15rem;
+  /* ブレークポイントは 900px。メディアクエリでは CSS 変数を使えないため、base.css と doc.js に直接書く */
+}
+
+/* =========================================================
+   ベース：リセット・組版・レイアウト・ドキュメントヘッダ
+   セマンティック HTML はクラスなしで整形する。
+   ========================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-size: var(--font-size-base);
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 1.5rem;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  line-height: var(--line-height-body);
+  letter-spacing: var(--letter-spacing-body);
+  line-break: strict;
+  overflow-wrap: break-word; /* anywhere だと表の列の最小幅が1文字になり、短い列が縦に折り返す */
+  text-autospace: normal; /* 和欧間スペースはブラウザに任せる。手動の半角スペースは入れない */
+}
+
+/* ---- レイアウト：PC は左に固定サイドバー、900px 以下は冒頭に折りたたみ ---- */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+.sidebar {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  background: var(--color-sidebar);
+  border-right: 1px solid var(--color-border);
+  padding: 2rem 1rem 2rem 1.25rem;
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-dense);
+}
+.sidebar summary {
+  font-weight: 700; color: var(--color-text-muted);
+  font-size: var(--font-size-label); letter-spacing: 0.08em;
+  list-style: none; cursor: default; margin-bottom: 0.75rem;
+}
+.sidebar summary::-webkit-details-marker { display: none; }
+
+.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+.toc li { counter-increment: toc; }
+.toc a {
+  display: grid; grid-template-columns: 2em 1fr;
+  padding: 0.35rem 0.5rem; border-radius: var(--radius-inline);
+  color: var(--color-text-muted); text-decoration: none;
+  border-left: 2px solid transparent;
+}
+.toc a::before { content: counter(toc) "."; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.toc a:hover { color: var(--color-text); background: rgba(0, 0, 0, .04); }
+.toc a[aria-current="true"] {
+  color: var(--color-accent); font-weight: 700;
+  background: var(--color-accent-soft);
+  border-left-color: var(--color-accent);
+  border-radius: 0 var(--radius-inline) var(--radius-inline) 0;
+}
+
+main { padding: 3rem 2rem 6rem; }
+article { max-width: var(--measure); margin: 0 auto; }
+
+@media (max-width: 900px) {
+  .layout { display: block; }
+  .sidebar {
+    position: static; height: auto;
+    border-right: 0; border-bottom: 1px solid var(--color-border);
+    padding: 0.75rem 1rem;
+  }
+  .sidebar summary { cursor: pointer; margin: 0; list-style: revert; font-size: var(--font-size-small); }
+  .sidebar details[open] summary { margin-bottom: 0.5rem; }
+  main { padding: 2rem 1rem 4rem; }
+}
+
+/* ---- ドキュメントヘッダ：タイトル・更新日・要約（要点） ---- */
+.doc-header { margin-bottom: 2.5rem; }
+.doc-header h1 {
+  font-size: var(--font-size-h1); line-height: 1.4;
+  letter-spacing: var(--letter-spacing-heading);
+  margin: 0 0 0.5rem; text-wrap: balance; font-weight: 700;
+}
+.doc-meta {
+  display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; margin: 0;
+  font-size: var(--font-size-caption); color: var(--color-text-muted);
+}
+.doc-meta div { display: flex; gap: 0.4em; }
+.doc-meta dt::after { content: "："; }
+.doc-meta dd { margin: 0; }
+.doc-header .note { margin: 1.5rem 0 0; }
+
+/* ---- 本文 ---- */
+/* 見出しと目次は文節の切れ目で折り返す（対応ブラウザのみ） */
+h1, h2, h3, .toc a, .step-title, figcaption, caption { word-break: auto-phrase; }
+
+h2, h3 {
+  letter-spacing: var(--letter-spacing-heading);
+  line-height: var(--line-height-heading);
+  text-wrap: balance; font-weight: 700;
+}
+h2 {
+  font-size: var(--font-size-h2);
+  margin: var(--space-section) 0 1.25rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--color-border);
+}
+h3 { font-size: var(--font-size-h3); margin: var(--space-subsection) 0 0.75rem; }
+p { margin: 0 0 var(--space-block); }
+a { color: var(--color-accent); text-underline-offset: 0.2em; }
+strong { font-weight: 700; }
+ul, ol { padding-left: 1.5em; margin: 0 0 var(--space-block); }
+li + li { margin-top: 0.25em; }
+
+code {
+  font-family: var(--font-mono); font-size: 0.875em;
+  background: var(--color-code-bg);
+  padding: 0.1em 0.35em; border-radius: 3px; letter-spacing: 0;
+}
+kbd {
+  font-family: var(--font-mono); font-size: 0.8125em;
+  border: 1px solid var(--color-border); border-bottom-width: 2px;
+  border-radius: var(--radius-inline);
+  padding: 0.05em 0.4em; background: var(--color-surface); letter-spacing: 0;
+}
+
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* =========================================================
+   コンポーネント
+   書き手が独自クラスを使えるのはここに定義したものだけ。
+   ========================================================= */
+
+/* ---- 要点・注記：共通の角丸ボックス ----
+   <div class="note point|info|tip|caution|warning">
+     <span class="note-title">補足</span>
+     <p>…</p>
+   </div>
+   point は要約専用（ドキュメントヘッダ内でのみ使う）。 */
+.note {
+  margin: 0 0 var(--space-block);
+  padding: 0.9rem 1.2rem 1rem;
+  background: var(--note-bg);
+  border: 1px solid var(--note-border);
+  border-radius: var(--radius-box);
+}
+.note > :last-child { margin-bottom: 0; }
+.note-title {
+  display: block; font-weight: 700; color: var(--note-color);
+  font-size: var(--font-size-small); letter-spacing: var(--letter-spacing-label);
+  margin-bottom: 0.3rem;
+}
+.note.point   { --note-color: var(--color-point);   --note-bg: var(--color-point-bg);   --note-border: var(--color-point-border); }
+.note.info    { --note-color: var(--color-info);    --note-bg: var(--color-info-bg);    --note-border: var(--color-info-border); }
+.note.tip     { --note-color: var(--color-tip);     --note-bg: var(--color-tip-bg);     --note-border: var(--color-tip-border); }
+.note.caution { --note-color: var(--color-caution); --note-bg: var(--color-caution-bg); --note-border: var(--color-caution-border); }
+.note.warning { --note-color: var(--color-warning); --note-bg: var(--color-warning-bg); --note-border: var(--color-warning-border); }
+
+/* ---- コードブロック ----
+   <div class="code">
+     <div class="code-header"><span>YAML</span></div>
+     <pre><code class="language-yaml">…</code></pre>
+   </div>
+   コピーボタンは埋め込みスクリプトが追加する。 */
+.code {
+  margin: 0 0 var(--space-block);
+  border: 1px solid var(--color-border); border-radius: var(--radius-block);
+  background: var(--color-code-bg); overflow: hidden;
+}
+.code-header {
+  display: flex; justify-content: space-between; align-items: center;
+  min-height: 2rem; padding: 0.3rem 0.5rem 0.3rem 0.9rem;
+  font-size: var(--font-size-label); color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border); letter-spacing: 0.04em;
+}
+.code-copy {
+  font: inherit; cursor: pointer;
+  border: 1px solid var(--color-border); border-radius: var(--radius-inline);
+  background: var(--color-surface); color: var(--color-text-muted);
+  padding: 0.1rem 0.6rem;
+}
+.code pre {
+  margin: 0; padding: 0.9rem 1rem; overflow-x: auto;
+  font-family: var(--font-mono); font-size: var(--font-size-caption);
+  line-height: 1.65; letter-spacing: 0;
+}
+.code pre code { background: none; padding: 0; font-size: inherit; border-radius: 0; }
+
+/* ---- 表 ----
+   <div class="table-wrap"><table><caption>表 1　…</caption>…</table></div> */
+.table-wrap { overflow-x: auto; margin: 0 0 var(--space-block); }
+table { border-collapse: collapse; width: 100%; font-size: var(--font-size-table); line-height: var(--line-height-dense); }
+th, td {
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.6rem 0.75rem; text-align: left; vertical-align: top;
+}
+thead th {
+  background: var(--color-sidebar); font-weight: 700;
+  border-bottom: 2px solid var(--color-border); white-space: nowrap;
+}
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+caption {
+  caption-side: top; text-align: left;
+  font-size: var(--font-size-caption); color: var(--color-text-muted);
+  padding-bottom: 0.4rem;
+}
+
+/* ---- ステップ（手順） ----
+   <ol class="steps"><li><span class="step-title">…</span>…</li></ol> */
+.steps { list-style: none; padding: 0; counter-reset: step; }
+.steps > li { counter-increment: step; position: relative; padding: 0 0 0.5rem 2.75rem; margin: 0 0 1rem; }
+.steps > li + li { margin-top: 0; }
+.steps > li::before {
+  content: counter(step);
+  position: absolute; left: 0; top: 0.1em;
+  width: 1.9rem; height: 1.9rem; border-radius: 50%;
+  background: var(--color-accent); color: var(--color-on-accent);
+  display: grid; place-items: center;
+  font-size: var(--font-size-small); font-weight: 700; letter-spacing: 0;
+}
+.steps > li:not(:last-child)::after {
+  content: ""; position: absolute; left: 0.9rem; top: 2.3rem; bottom: -0.6rem;
+  width: 2px; background: var(--color-border);
+}
+.step-title { display: block; font-weight: 700; margin-bottom: 0.25rem; }
+.steps .code { margin-top: 0.5rem; }
+
+/* ---- チェックリスト（前提条件・確認事項） ----
+   <ul class="checklist"><li>…</li></ul> */
+.checklist { list-style: none; padding-left: 0; }
+.checklist > li { position: relative; padding-left: 1.75em; }
+.checklist > li::before {
+  content: ""; position: absolute; left: 0.1em; top: 0.35em;
+  width: 1em; height: 1em; border: 1.5px solid var(--color-text-muted); border-radius: 3px;
+  background: var(--color-surface);
+}
+
+/* ---- 数値カード（報告書向け） ----
+   <div class="stats">
+     <div class="stat"><span class="stat-label">…</span><span class="stat-value">…</span><span class="stat-delta up|down">…</span></div>
+   </div> */
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem; margin: 0 0 var(--space-block);
+}
+.stat {
+  display: flex; flex-direction: column; gap: 0.15rem;
+  padding: 0.9rem 1rem; background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: var(--radius-box);
+}
+.stat-label { font-size: var(--font-size-caption); color: var(--color-text-muted); }
+.stat-value { font-size: 1.625rem; font-weight: 700; line-height: 1.3; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.stat-delta { font-size: var(--font-size-caption); font-variant-numeric: tabular-nums; color: var(--color-text-muted); }
+.stat-delta.up { color: var(--color-tip); }
+.stat-delta.down { color: var(--color-warning); }
+
+/* ---- 図 ----
+   <figure><svg role="img" aria-labelledby="…"><title id="…">…</title>…</svg><figcaption>図 1　…</figcaption></figure> */
+figure { margin: 0 0 var(--space-block); }
+figure > svg, figure > img {
+  width: 100%; height: auto; display: block;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border); border-radius: var(--radius-block);
+}
+figcaption {
+  font-size: var(--font-size-caption); color: var(--color-text-muted);
+  margin-top: 0.5rem; text-align: center;
+}
+
+/* 図の部品：インライン SVG の中では色を直接書かず、これらのクラスを使う。
+   text は x, y が文字の中心になる。 */
+figure svg text {
+  font-family: var(--font-body); font-size: 13px; letter-spacing: 0;
+  fill: var(--color-text); text-anchor: middle; dominant-baseline: central;
+}
+figure svg .fig-node        { fill: var(--color-bg); stroke: var(--color-border); stroke-width: 1; }
+figure svg .fig-node-accent { fill: var(--color-accent-soft); stroke: var(--color-accent); stroke-width: 1; }
+figure svg .fig-edge        { fill: none; stroke: var(--color-text-muted); stroke-width: 1.5; }
+figure svg .fig-edge-dashed { fill: none; stroke: var(--color-text-muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+figure svg .fig-arrowhead   { fill: var(--color-text-muted); }
+figure svg .fig-label       { fill: var(--color-text-muted); font-size: 11px; }
+figure svg .fig-strong      { font-weight: 700; }
+figure svg .fig-accent      { fill: var(--color-accent); font-weight: 700; }
+
+/* ---- 用語定義（用語集で使う） ----
+   <dl class="terms"><dt>…</dt><dd>…</dd></dl> */
+dl.terms { margin: 0 0 var(--space-block); }
+dl.terms dt { font-weight: 700; }
+dl.terms dd { margin: 0 0 0.75rem 1.25em; }
+
+/* ---- 折りたたみ ----
+   <details class="fold"><summary>…</summary><p>…</p></details> */
+details.fold {
+  margin: 0 0 var(--space-block);
+  border: 1px solid var(--color-border); border-radius: var(--radius-block);
+  background: var(--color-surface);
+}
+details.fold summary { padding: 0.6rem 1rem; cursor: pointer; font-weight: 700; }
+details.fold > :not(summary) { margin: 0 1rem 1rem; }
+
+/* ---- 脚注 ----
+   本文: <sup class="fnref"><a href="#fn1" id="fnref1">1</a></sup>
+   末尾: <ol class="footnotes"><li id="fn1">… <a href="#fnref1" aria-label="本文へ戻る">↩</a></li></ol> */
+.fnref { font-size: 0.75em; line-height: 0; }
+.fnref a { text-decoration: none; padding: 0 0.1em; }
+.footnotes {
+  font-size: var(--font-size-caption); color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border); padding-top: 1rem; margin-top: var(--space-section);
+}
+
+/* =========================================================
+   highlight.js の配色（デザイントークンから作る）
+   コード強調スクリプトを埋め込むドキュメントにだけ含める。
+   ========================================================= */
+.hljs { color: var(--color-text); background: none; }
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-literal,
+.hljs-type,
+.hljs-meta .hljs-keyword { color: var(--color-syntax-keyword); }
+
+.hljs-string,
+.hljs-regexp,
+.hljs-symbol,
+.hljs-template-tag,
+.hljs-template-variable { color: var(--color-syntax-string); }
+
+.hljs-number,
+.hljs-bullet,
+.hljs-link { color: var(--color-syntax-number); }
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-title.class_,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class { color: var(--color-syntax-title); }
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-property,
+.hljs-params,
+.hljs-meta { color: var(--color-syntax-attr); }
+
+.hljs-comment,
+.hljs-quote { color: var(--color-syntax-comment); font-style: normal; }
+
+.hljs-deletion { background: var(--color-syntax-deletion-bg); color: var(--color-warning); }
+.hljs-addition { background: var(--color-syntax-addition-bg); color: var(--color-tip); }
+
+.hljs-strong { font-weight: 700; }
+.hljs-emphasis { font-style: normal; font-weight: 700; } /* 和文に斜体は使わない */
+
+/* =========================================================
+   印刷・PDF 化（最低限）
+   ========================================================= */
+@media print {
+  .sidebar, .code-copy { display: none !important; }
+  .layout { display: block; }
+  main { padding: 0; }
+  body { background: #fff; }
+  h2, h3 { break-after: avoid; }
+  .code, .note, figure, table, .stat, .steps > li { break-inside: avoid; }
+  article a[href^="http"]::after {
+    content: "（" attr(href) "）";
+    font-size: 0.8em; color: var(--color-text-muted);
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar" aria-label="目次">
+    <details open>
+      <summary>目次</summary>
+      <div class="toc" id="toc"></div>
+    </details>
+  </nav>
+
+  <main>
+    <article>
+      <header class="doc-header">
+        <h1>{{タイトル}}</h1>
+        <dl class="doc-meta">
+          <div><dt>更新日</dt><dd><time datetime="{{YYYY-MM-DD}}">{{YYYY年M月D日}}</time></dd></div>
+        </dl>
+        <div class="note point">
+          <span class="note-title">要点</span>
+          <p>{{要約：2〜3行でドキュメントの要旨を書く}}</p>
+        </div>
+      </header>
+
+      <!-- ここから本文。セクションは <section> + <h2> で、5〜15 個程度 -->
+      <section>
+        <h2 id="{{英数字の ID}}">{{セクション見出し}}</h2>
+        <p>{{本文}}</p>
+      </section>
+
+      <!-- 用語集：必ず最後のセクションとして置く -->
+      <section class="glossary">
+        <h2 id="glossary">用語集</h2>
+        <dl class="terms">
+          <dt>{{用語}}</dt>
+          <dd>{{定義}}</dd>
+        </dl>
+      </section>
+    </article>
+  </main>
+</div>
+
+<!-- コード強調スクリプト：コードブロックがある場合のみ、ここに highlight-snippet.html の中身を貼る -->
+<script>
+/* 埋め込みスクリプト：編集しない */
+/* =========================================================
+   埋め込みスクリプト
+   目次の生成・現在位置のハイライト・コードのコピー・構文強調の起動。
+   書き手は編集しない。動かなくても本文は読める。
+   ========================================================= */
+(function () {
+  "use strict";
+  var article = document.querySelector("article");
+  var toc = document.getElementById("toc");
+  if (!article) return;
+
+  /* ---- 目次：article 直下のセクションの h2 から生成 ---- */
+  var heads = Array.prototype.slice.call(article.querySelectorAll("h2"));
+  if (toc && heads.length) {
+    var ol = document.createElement("ol");
+    heads.forEach(function (h, i) {
+      if (!h.id) h.id = "section-" + (i + 1);
+      var li = document.createElement("li");
+      var a = document.createElement("a");
+      a.href = "#" + h.id;
+      a.textContent = h.textContent;
+      li.appendChild(a);
+      ol.appendChild(li);
+    });
+    toc.appendChild(ol);
+  }
+
+  /* ---- 現在位置のハイライト ---- */
+  var links = toc ? toc.querySelectorAll("a") : [];
+  function markCurrent() {
+    var current = null;
+    heads.forEach(function (h) {
+      if (h.getBoundingClientRect().top < window.innerHeight * 0.3) current = h.id;
+    });
+    Array.prototype.forEach.call(links, function (a) {
+      a.setAttribute("aria-current", a.getAttribute("href") === "#" + current ? "true" : "false");
+    });
+  }
+  if ("IntersectionObserver" in window && heads.length) {
+    var io = new IntersectionObserver(markCurrent, { rootMargin: "0px 0px -70% 0px" });
+    heads.forEach(function (h) { io.observe(h); });
+  }
+
+  /* ---- スマホでは目次を折りたたむ ---- */
+  var det = document.querySelector(".sidebar details");
+  if (det && window.matchMedia) {
+    var mq = window.matchMedia("(max-width: 900px)");
+    var sync = function () { det.open = !mq.matches; };
+    sync();
+    if (mq.addEventListener) mq.addEventListener("change", sync);
+  }
+
+  /* ---- コードのコピーボタン ----
+     file:// などで Clipboard API が使えない場合は execCommand で代替する */
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { /* 失敗時は下で reject */ }
+      document.body.removeChild(ta);
+      ok ? resolve() : reject();
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".code"), function (block) {
+    var header = block.querySelector(".code-header");
+    var pre = block.querySelector("pre");
+    if (!header || !pre) return;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "code-copy";
+    btn.textContent = "コピー";
+    btn.addEventListener("click", function () {
+      copyText(pre.innerText).then(
+        function () { btn.textContent = "コピーしました"; },
+        function () { btn.textContent = "コピーできませんでした"; }
+      ).then(function () {
+        setTimeout(function () { btn.textContent = "コピー"; }, 1500);
+      });
+    });
+    header.appendChild(btn);
+  });
+
+  /* ---- 構文強調：コード強調スクリプトが埋め込まれているときだけ ---- */
+  if (window.hljs) {
+    Array.prototype.forEach.call(document.querySelectorAll('pre code[class*="language-"]'), function (el) {
+      window.hljs.highlightElement(el);
+    });
+  }
+})();
+
+</script>
+</body>
+</html>
