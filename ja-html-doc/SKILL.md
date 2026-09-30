@@ -9,7 +9,12 @@ description: 日本語の説明用ドキュメント（技術解説・手順書�
 
 以下、`$SKILL_DIR` はこの SKILL.md があるディレクトリを指す。
 
+文章は **japanese-base-writing** スキルのルールに従って書く。HTML ドキュメントに固有の決まりは、下の「表記規約」に書いた。
+
 ## 手順
+
+0. **文章のルールを読み込む**：japanese-base-writing スキルを呼び出す。スキルとして呼び出せない環境では、`$SKILL_DIR/../japanese-base-writing/SKILL.md` を読む。そのうえで、ドキュメントの **読み手** と **目的** を決める（S-01）。読み手が決まらない場合は、依頼者に確認する。
+   完了条件：読み手と目的が決まっている。
 
 1. **文書種別を決める**：依頼から技術解説・手順書・提案書・報告書のいずれかを選び、[references/structures.md](references/structures.md) の該当する節を読む。どれにも当てはまらなければ技術解説を土台にする。
    完了条件：セクション見出しの一覧（5〜15個、最後は「用語集」）が決まっている。
@@ -22,7 +27,7 @@ description: 日本語の説明用ドキュメント（技術解説・手順書�
 
 3. **ドキュメントヘッダを書く**：`<title>` と `<h1>` に同じタイトルを入れる。更新日は今日の日付（`date +%Y-%m-%d`）。「要点」ボックスには要約を2〜3行で書く。読み手が本文を読まずに結論と要旨をつかめる内容にする。
 
-4. **本文を書く**：手順 1 の構成に沿って、セクションを `<section>` と `<h2 id="英小文字-ハイフン">` で書く。部品は [references/components.md](references/components.md) の HTML をそのまま使う。図を描くときは [references/figures.md](references/figures.md) を読む。文章は下の「表記規約」に従う。
+4. **本文を書く**：手順 1 の構成に沿って、セクションを `<section>` と `<h2 id="英小文字-ハイフン">` で書く。部品は [references/components.md](references/components.md) の HTML をそのまま使う。図を描くときは [references/figures.md](references/figures.md) を読む。文章は japanese-base-writing のルールと、下の「表記規約」に従う。
    完了条件：構成のすべてのセクションが本文で埋まっている。
 
 5. **用語集を書く**：最後のセクションを `<h2 id="glossary">用語集</h2>` とし、本文に出てきた専門用語と略語を、出てきた順にすべて `dl.terms` で定義する。
@@ -38,10 +43,13 @@ description: 日本語の説明用ドキュメント（技術解説・手順書�
    - 使っている独自クラスがすべて components.md に載っている
    - CSS・JS・フォント・画像を外部から読み込んでいない（外部ページへの `<a>` リンクは可）
    - 表記規約をすべて守っている
+   - japanese-base-writing の「文章を見直すとき」の手順で本文を見直し、違反箇所をすべて直した
 
 最後に、作成したファイルのパスを伝える。
 
 ## 表記規約
+
+japanese-base-writing のルールに加えて、次の規約を守る。japanese-base-writing のルールとぶつかる場合は、この規約を優先する。
 
 - 文体は「です・ます調」。句読点は「、」と「。」。
 - 英数字は半角、括弧は全角の「（）」。
